@@ -102,6 +102,13 @@ final class DocParser
      */
     private $ignoreNotImportedAnnotations = false;
 
+     /**
+     * Signal to the parser ignore native php annotations.
+     *
+     * @var boolean
+     */
+    private $ignorePhpAnnotations = true;
+
     /**
      * An array of default namespaces if operating in simple mode.
      *
@@ -123,6 +130,11 @@ final class DocParser
      * @var string
      */
     private $context = '';
+
+     /**
+     * @var string
+     */
+    private $input;
 
     /**
      * Hash-map for caching annotation metadata
@@ -227,6 +239,17 @@ final class DocParser
         'int'       => 'integer',
     );
 
+     /**
+     * Hash-map for native annotations
+     *
+     * @var array
+     */
+    private static $phpAnnotations = array(
+        'var'       => 'Doctrine\Common\Annotations\Annotation\VarAnnotation',
+        'param'     => 'Doctrine\Common\Annotations\Annotation\ParamAnnotation',
+        'return'    => 'Doctrine\Common\Annotations\Annotation\ReturnAnnotation',
+    );
+
     /**
      * Constructs a new DocParser.
      */
@@ -256,6 +279,17 @@ final class DocParser
     public function setIgnoreNotImportedAnnotations($bool)
     {
         $this->ignoreNotImportedAnnotations = (boolean) $bool;
+    }
+
+
+     /**
+     * Signal to the parser ignore native php annotations
+     *
+     * @param boolean $flag
+     */
+    public function setIgnorePhpAnnotations($flag)
+    {
+        $this->ignorePhpAnnotations = (Boolean) $flag;
     }
 
     /**
@@ -318,6 +352,7 @@ final class DocParser
             $pos -= 1;
         }
 
+        $this->input = $input;
         $this->context = $context;
 
         $this->lexer->setInput(trim(substr($input, $pos), '* /'));
@@ -651,6 +686,14 @@ final class DocParser
             }
 
             if ( ! $found) {
+                if (!$this->ignorePhpAnnotations && isset(self::$phpAnnotations[$loweredAlias])) {
+                    $className  = self::$phpAnnotations[$loweredAlias];
+                    if (preg_match("/$name\s+([^\s]+)/", substr($this->input, $this->lexer->lookahead['position']-1), $matches)) {
+                        return new $className(array('value'=>$matches[1]));
+                    }
+                    return new $className();
+                }
+
                 if ($this->ignoreNotImportedAnnotations || isset($this->ignoredAnnotationNames[$name])) {
                     return false;
                 }

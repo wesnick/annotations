@@ -112,6 +112,16 @@ class AnnotationReader implements Reader
     }
 
     /**
+     * Signal to the parser ignore native php annotations
+     *
+     * @param boolean $flag
+     */
+    public function setIgnorePhpAnnotations($flag)
+    {
+        $this->parser->setIgnorePhpAnnotations($flag);
+    }
+
+    /**
      * Annotations Parser
      *
      * @var \Doctrine\Common\Annotations\DocParser
